@@ -2,7 +2,14 @@
 
 A simple program written in Java which provides a fast-lookup for LevelDB databases.
 
-Because this program uses Intellij platform's GUI Designer, you should use Intellij IDEA or include the Intellij GUI Designer's libraries in order to build it.
+#### Build
+
+**Requires IntelliJ to compile**
+
+- Make sure `File > Settings > Editor > GUI Designer > Generate into` is set to `Java source` before compiling with maven
+otherwise you will receive an NPE when trying to run the application.
+
+- Run Maven with `clean package`
 
 By using this program, you should agree such licences
 ```

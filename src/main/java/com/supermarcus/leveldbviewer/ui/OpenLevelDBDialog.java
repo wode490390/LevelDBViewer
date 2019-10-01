@@ -1,9 +1,13 @@
 package com.supermarcus.leveldbviewer.ui;
 
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.uiDesigner.core.Spacer;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.Options;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 
@@ -56,7 +60,7 @@ public class OpenLevelDBDialog extends JDialog {
 
         databasePath.setText(select.getAbsolutePath());
 
-        for(CompressionType t : CompressionType.values()){
+        for (CompressionType t : CompressionType.values()) {
             compressType.addItem(t);
         }
 
@@ -73,9 +77,9 @@ public class OpenLevelDBDialog extends JDialog {
         options.createIfMissing(this.createBox.isSelected());
         options.compressionType((CompressionType) this.compressType.getSelectedItem());
 
-        try{
+        try {
             options.maxOpenFiles(Integer.parseInt(this.maxOpenFiles.getValue().toString()));
-        }catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
             options.maxOpenFiles(1000);
         }
 
@@ -90,4 +94,5 @@ public class OpenLevelDBDialog extends JDialog {
     private void onCancel() {
         dispose();
     }
+
 }

@@ -1,10 +1,14 @@
 package com.supermarcus.leveldbviewer.ui;
 
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.uiDesigner.core.Spacer;
 import com.supermarcus.leveldbviewer.LevelDBViewer;
 import org.iq80.leveldb.Options;
 
 import javax.swing.*;
 import javax.swing.event.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import org.iq80.leveldb.*;
@@ -14,8 +18,10 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.TreeMap;
 
 public class Viewer {
     private JTextField findField;
@@ -23,7 +29,7 @@ public class Viewer {
     private JButton openButton;
     private JList<DBItem> dataList;
 
-    private JDialog dialog = new JDialog();
+    private JFrame frame = new JFrame();
 
     private JPanel pane;
     private JTextField key;
@@ -265,7 +271,7 @@ public class Viewer {
             }
         });
 
-        for(PutType t : PutType.values()){
+        for (PutType t : PutType.values()) {
             putType.addItem(t);
         }
         putType.setSelectedItem(PutType.STRING);
@@ -282,48 +288,48 @@ public class Viewer {
             }
         });
 
-        dialog.setLocationByPlatform(true);
-        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setContentPane(pane);
-        dialog.setTitle("LevelDB Viewer By Marcus (https://github.com/SuperMarcus)");
-        dialog.getRootPane().setDefaultButton(openButton);
-        dialog.pack();
-        dialog.setVisible(true);
+        frame.setLocationByPlatform(true);
+        frame.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        frame.setContentPane(pane);
+        frame.setTitle("LevelDB Viewer By Marcus (https://github.com/SuperMarcus)");
+        frame.getRootPane().setDefaultButton(openButton);
+        frame.pack();
+        frame.setVisible(true);
     }
 
-    public void update(JTextArea area){
+    public void update(JTextArea area) {
         DBItem item = dataList.getSelectedValue();
-        if(item != null && !isSet){
+        if (item != null && !isSet) {
             isSet = true;
-            try{
-                if(area == hexKey){
-                    if(area.getText().isEmpty()){
+            try {
+                if (area == hexKey) {
+                    if (area.getText().isEmpty()) {
                         return;
                     }
                     item.key = new BigInteger(area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n"), 16).toByteArray();
                     stringKey.setText(cutToLine(new String(item.key), 64));
                     dataList.updateUI();
-                }else if(area == stringKey){
-                    if(area.getText().isEmpty()){
+                } else if (area == stringKey) {
+                    if (area.getText().isEmpty()) {
                         return;
                     }
                     item.key = area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n").getBytes();
                     hexKey.setText(cutToLine(LevelDBViewer.toHexString(item.key), 64));
                     dataList.updateUI();
-                }else if(area == hexValue){
+                } else if (area == hexValue) {
                     item.value = new BigInteger(area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n"), 16).toByteArray();
                     stringValue.setText(cutToLine(new String(item.value), 64));
-                }else if(area == stringValue){
+                } else if (area == stringValue) {
                     item.value = area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n").getBytes();
                     hexValue.setText(cutToLine(LevelDBViewer.toHexString(item.value), 64));
                 }
                 notice.setVisible(false);
                 notice.setText("");
                 saveButton.setEnabled(true);
-            }catch (Exception e){
+            } catch (Exception e) {
                 notice.setVisible(true);
                 notice.setText("Invalid number!");
-            }finally {
+            } finally {
                 lengthLabel.setText(String.valueOf(item.value.length + item.key.length));
                 keyLength.setText(String.valueOf(item.key.length));
                 valueLength.setText(String.valueOf(item.value.length));
@@ -332,37 +338,37 @@ public class Viewer {
         }
     }
 
-    public void save(){
+    public void save() {
         boolean isNoticed = false;
-        if(!notice.isVisible()){
+        if (!notice.isVisible()) {
             isNoticed = true;
             notice.setVisible(true);
             notice.setText("Saving...");
         }
-        if(getOptions() != null){
+        if (getOptions() != null) {
             DB database = null;
-            try{
+            try {
                 database = factory.open(this.leveldbStore.getSelectedFile(), getOptions());
                 DBIterator iterator = database.iterator();
                 HashSet<byte[]> keys = new HashSet<>();
 
-                for(iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
+                for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
                     keys.add(iterator.peekNext().getKey());
                 }
                 iterator.close();
 
-                for(byte[] key : keys){
+                for (byte[] key : keys) {
                     database.delete(key);
                 }
 
-                for(int i = 0; i < dataList.getModel().getSize(); ++i){
+                for (int i = 0; i < dataList.getModel().getSize(); ++i) {
                     DBItem item = dataList.getModel().getElementAt(i);
                     database.put(item.key, item.value);
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 JOptionPane.showMessageDialog(pane, "Unable to open database:\n" + e);
                 e.printStackTrace();
-            }finally {
+            } finally {
                 if (database != null) {
                     try {
                         database.close();
@@ -374,7 +380,7 @@ public class Viewer {
                 saveButton.setEnabled(false);
             }
         }
-        if(isNoticed){
+        if (isNoticed) {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -385,10 +391,10 @@ public class Viewer {
         }
     }
 
-    public void openDatabase(File select){
-        if(getOptions() != null){
+    public void openDatabase(File select) {
+        if (getOptions() != null) {
             DB database = null;
-            try{
+            try {
                 database = factory.open(select, getOptions());
                 DBIterator iterator = database.iterator();
 
@@ -396,22 +402,22 @@ public class Viewer {
 
                 String reg = findField.getText().trim();
 
-                for(iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
-                    if(reg.isEmpty()                                                                  ||
-                            new BigInteger(iterator.peekNext().getKey()).toString(16).contains(reg)   ||
-                            LevelDBViewer.toHexString(iterator.peekNext().getKey()).contains(reg)     ||
-                            new BigInteger(iterator.peekNext().getValue()).toString(16).contains(reg) ||
-                            LevelDBViewer.toHexString(iterator.peekNext().getValue()).contains(reg)   ||
-                            new String(iterator.peekNext().getKey()).contains(reg)                    ||
-                            new String(iterator.peekNext().getValue()).contains(reg))
-                    {
+                for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
+                    if (reg.isEmpty() ||
+//                            new BigInteger(iterator.peekNext().getKey()).toString(16).contains(reg) ||
+//                            LevelDBViewer.toHexString(iterator.peekNext().getKey()).contains(reg) ||
+//                            new BigInteger(iterator.peekNext().getValue()).toString(16).contains(reg) ||
+//                            LevelDBViewer.toHexString(iterator.peekNext().getValue()).contains(reg) ||
+                            new String(iterator.peekNext().getKey()).contains(reg) //||
+//                            new String(iterator.peekNext().getValue()).contains(reg)
+                    ) {
                         data.add(new DBItem(iterator.peekNext().getKey(), iterator.peekNext().getValue()));
                     }
                 }
 
                 iterator.close();
 
-                dialog.getRootPane().setDefaultButton(putButton);
+                frame.getRootPane().setDefaultButton(putButton);
 
                 dataList.getSelectionModel().clearSelection();
                 dataList.setListData(data.toArray(new DBItem[data.size()]));
@@ -433,10 +439,10 @@ public class Viewer {
                 lengthLabel.setText("");
                 keyLength.setText("");
                 valueLength.setText("");
-            }catch (Exception e){
+            } catch (Exception e) {
                 JOptionPane.showMessageDialog(pane, "Unable to open database:\n" + e);
                 e.printStackTrace();
-            }finally {
+            } finally {
                 if (database != null) {
                     try {
                         database.close();
@@ -449,16 +455,16 @@ public class Viewer {
         }
     }
 
-    public void put(byte[] key, byte[] value){
-        if(getOptions() != null){
+    public void put(byte[] key, byte[] value) {
+        if (getOptions() != null) {
             DB database = null;
-            try{
+            try {
                 database = factory.open(this.leveldbStore.getSelectedFile(), getOptions());
                 database.put(key, value);
-            }catch (Exception e){
+            } catch (Exception e) {
                 JOptionPane.showMessageDialog(pane, "Unable to open database:\n" + e);
                 e.printStackTrace();
-            }finally {
+            } finally {
                 if (database != null) {
                     try {
                         database.close();
@@ -471,16 +477,16 @@ public class Viewer {
         }
     }
 
-    public void delete(byte[] key){
-        if(getOptions() != null){
+    public void delete(byte[] key) {
+        if (getOptions() != null) {
             DB database = null;
-            try{
+            try {
                 database = factory.open(this.leveldbStore.getSelectedFile(), getOptions());
                 database.delete(key);
-            }catch (Exception e){
+            } catch (Exception e) {
                 JOptionPane.showMessageDialog(pane, "Unable to open database:\n" + e);
                 e.printStackTrace();
-            }finally {
+            } finally {
                 if (database != null) {
                     try {
                         database.close();
@@ -501,13 +507,13 @@ public class Viewer {
         this.options = options;
     }
 
-    public String cutToLine(String str, int lineChars){
+    public String cutToLine(String str, int lineChars) {
         String eol = "\n";
-        str = str.replace("\n", "%{EOL}");
+        str = str.replace("\n", "\\n");
         StringBuilder builder = new StringBuilder();
         int pointer = 0;
-        for(char c : str.toCharArray()){
-            if((++pointer % lineChars) == 0){
+        for (char c : str.toCharArray()) {
+            if ((++pointer % lineChars) == 0) {
                 builder.append(eol);
             }
             builder.append(c);
@@ -515,19 +521,19 @@ public class Viewer {
         return builder.toString();
     }
 
-    public class DBItem{
+    public class DBItem {
         private byte[] key;
 
         private byte[] value;
 
-        public DBItem(byte[] key, byte[] value){
+        public DBItem(byte[] key, byte[] value) {
             this.key = key;
             this.value = value;
         }
 
-        public String toString(){
-            String s = ((PutType) putType.getSelectedItem()).toString(key);
-            return s.length() > 8 ? s.substring(0, 8) + "..." : s;
+        public String toString() {
+            return ((PutType) putType.getSelectedItem()).toString(key);
+            //return s.length() > 8 ? s.substring(0, 8) + "..." : s;
         }
     }
 
@@ -535,8 +541,8 @@ public class Viewer {
         STRING,
         HEX;
 
-        public byte[] getBytes(String value){
-            switch (this){
+        public byte[] getBytes(String value) {
+            switch (this) {
                 case STRING:
                     return bytes(value);
                 case HEX:
@@ -545,10 +551,10 @@ public class Viewer {
             return new byte[0];
         }
 
-        public String toString(byte[] bytes){
-            switch (this){
+        public String toString(byte[] bytes) {
+            switch (this) {
                 case STRING:
-                    return asString(bytes);
+                    return new String(bytes, StandardCharsets.US_ASCII);
                 case HEX:
                     return LevelDBViewer.toHexString(bytes);
             }

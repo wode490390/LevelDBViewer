@@ -2,12 +2,14 @@ package com.supermarcus.leveldbviewer;
 
 import com.supermarcus.leveldbviewer.ui.Viewer;
 
+import javax.swing.*;
 import java.math.BigInteger;
 
 public class LevelDBViewer {
     public static boolean DEFAULT_SINGED = false;
 
-    public static void main(String args[]){
+    public static void main(String args[]) throws Exception {
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         new Viewer();
     }
 
