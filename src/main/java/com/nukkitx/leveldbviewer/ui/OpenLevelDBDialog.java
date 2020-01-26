@@ -1,8 +1,5 @@
-package com.supermarcus.leveldbviewer.ui;
+package com.nukkitx.leveldbviewer.ui;
 
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.uiDesigner.core.GridLayoutManager;
-import com.intellij.uiDesigner.core.Spacer;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.Options;
 

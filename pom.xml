@@ -29,7 +29,11 @@
             <groupId>org.iq80.leveldb</groupId>
             <artifactId>leveldb</artifactId>
             <version>0.11-SNAPSHOT</version>
-            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.nukkitx</groupId>
+            <artifactId>nbt</artifactId>
+            <version>1.4.2</version>
         </dependency>
         <dependency>
             <groupId>com.github.adedayo.intellij.sdk</groupId>
@@ -40,6 +44,11 @@
             <groupId>com.github.adedayo.intellij.sdk</groupId>
             <artifactId>forms_rt</artifactId>
             <version>142.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <version>4.1.44.Final</version>
         </dependency>
     </dependencies>
 
@@ -54,7 +63,7 @@
                         <manifestEntries>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <Main-Class>com.supermarcus.leveldbviewer.LevelDBViewer</Main-Class>
+                            <Main-Class>com.nukkitx.leveldbviewer.LevelDBViewer</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>

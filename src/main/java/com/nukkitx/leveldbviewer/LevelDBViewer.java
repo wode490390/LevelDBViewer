@@ -1,6 +1,6 @@
-package com.supermarcus.leveldbviewer;
+package com.nukkitx.leveldbviewer;
 
-import com.supermarcus.leveldbviewer.ui.Viewer;
+import com.nukkitx.leveldbviewer.ui.Viewer;
 
 import javax.swing.*;
 import java.math.BigInteger;
@@ -10,7 +10,7 @@ public class LevelDBViewer {
 
     public static void main(String args[]) throws Exception {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        new Viewer();
+        SwingUtilities.invokeLater(Viewer::new);
     }
 
     public static String toHexString(byte[] bytes){

@@ -1,32 +1,30 @@
-package com.supermarcus.leveldbviewer.ui;
+package com.nukkitx.leveldbviewer.ui;
 
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.uiDesigner.core.GridLayoutManager;
-import com.intellij.uiDesigner.core.Spacer;
-import com.supermarcus.leveldbviewer.LevelDBViewer;
+import com.nukkitx.leveldbviewer.util.LevelDBKey;
+import com.nukkitx.leveldbviewer.util.Utils;
+import com.nukkitx.nbt.NbtUtils;
+import com.nukkitx.nbt.stream.NBTInputStream;
+import com.nukkitx.leveldbviewer.LevelDBViewer;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import org.iq80.leveldb.Options;
 
 import javax.swing.*;
 import javax.swing.event.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import org.iq80.leveldb.*;
 import static org.iq80.leveldb.impl.Iq80DBFactory.*;
 
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
+import java.awt.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.TreeMap;
+import java.util.Objects;
+import java.util.StringJoiner;
 
 public class Viewer {
     private JTextField findField;
-    private JTextField dbPathField;
-    private JButton openButton;
     private JList<DBItem> dataList;
 
     private JFrame frame = new JFrame();
@@ -36,17 +34,23 @@ public class Viewer {
     private JTextField value;
     private JButton putButton;
     private JTextArea hexValue;
-    private JTextArea stringValue;
+    private JTextArea nbtValue;
     private JLabel lengthLabel;
     private JLabel keyLength;
     private JLabel valueLength;
     private JTextArea hexKey;
     private JTextArea stringKey;
     private JButton deleteButton;
-    private JButton saveButton;
     private JLabel notice;
     private JComboBox<PutType> putType;
     private JCheckBox signedBox;
+    private JMenuBar menuBar;
+    private JMenu fileMenu;
+    private JMenuItem openMenuItem;
+    private JMenuItem saveMenuItem;
+    private JMenu databaseMenu;
+    private JMenuItem putMenuItem;
+    private JMenuItem deleteMenuItem;
 
     private boolean isSet = false;
 
@@ -58,65 +62,59 @@ public class Viewer {
         leveldbStore.setMultiSelectionEnabled(false);
         leveldbStore.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
+        String os = System.getProperty("os.name");
+        if ("Windows 10".equals(os)) {
+            String appData = System.getenv("LocalAppData");
+            File worldsDir = new File(appData + "\\Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe\\LocalState\\games\\com.mojang\\minecraftWorlds");
+            if (worldsDir.exists() && worldsDir.isDirectory()) {
+                leveldbStore.setCurrentDirectory(worldsDir);
+            }
+        }
+        nbtValue.setEnabled(false);
+
         putButton.setEnabled(false);
         key.setEnabled(false);
         value.setEnabled(false);
         findField.setEnabled(false);
         deleteButton.setEnabled(false);
-        saveButton.setEnabled(false);
+        saveMenuItem.setEnabled(false);
         putType.setEnabled(false);
         putType.setEditable(false);
         signedBox.setEnabled(false);
 
-        openButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (openButton.isEnabled()) {
-                    openButton.setEnabled(false);
-                    new Thread() {
-                        public void run() {
-                            if (leveldbStore.showOpenDialog(pane) == JFileChooser.APPROVE_OPTION) {
-                                File select = leveldbStore.getSelectedFile();
-                                if (select.isDirectory()) {
-                                    new OpenLevelDBDialog(Viewer.this, select);
-                                    openDatabase(select);
-                                    dbPathField.setText(select.getAbsolutePath());
-                                } else {
-                                    JOptionPane.showMessageDialog(pane, "The selecting item must be a directory", "Unable to load database", JOptionPane.WARNING_MESSAGE);
-                                }
-                            } else {
-                                openButton.setEnabled(true);
-                            }
+        openMenuItem.addActionListener(e -> {
+            if (openMenuItem.isEnabled()) {
+                openMenuItem.setEnabled(false);
+                new Thread(() -> {
+                    if (leveldbStore.showOpenDialog(pane) == JFileChooser.APPROVE_OPTION) {
+                        File select = leveldbStore.getSelectedFile();
+                        if (select.isDirectory()) {
+                            new OpenLevelDBDialog(Viewer.this, select);
+                            openDatabase(select);
+                            frame.setTitle("LevelDB Viewer (" + select.getAbsolutePath() + ")");
+                        } else {
+                            JOptionPane.showMessageDialog(pane, "The selecting item must be a directory", "Unable to load database", JOptionPane.WARNING_MESSAGE);
                         }
-                    }.start();
-                }
+                    } else {
+                        openMenuItem.setEnabled(true);
+                    }
+                }).start();
             }
         });
 
-        deleteButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (dataList.getSelectedValue() != null) {
-                    delete(dataList.getSelectedValue().key);
-                }
-                openDatabase(leveldbStore.getSelectedFile());
+        deleteButton.addActionListener(e -> {
+            if (dataList.getSelectedValue() != null) {
+                delete(dataList.getSelectedValue().key);
             }
+            openDatabase(leveldbStore.getSelectedFile());
         });
 
-        putButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                put(((PutType) putType.getSelectedItem()).getBytes(key.getText()), ((PutType) putType.getSelectedItem()).getBytes(value.getText()));
-                openDatabase(leveldbStore.getSelectedFile());
-            }
+        putButton.addActionListener(e -> {
+            put(((PutType) putType.getSelectedItem()).getBytes(key.getText()), ((PutType) putType.getSelectedItem()).getBytes(value.getText()));
+            openDatabase(leveldbStore.getSelectedFile());
         });
 
-        findField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openDatabase(leveldbStore.getSelectedFile());
-            }
-        });
+        findField.addActionListener(e -> openDatabase(leveldbStore.getSelectedFile()));
         findField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -133,12 +131,7 @@ public class Viewer {
                 openDatabase(leveldbStore.getSelectedFile());
             }
         });
-        findField.getDocument().addUndoableEditListener(new UndoableEditListener() {
-            @Override
-            public void undoableEditHappened(UndoableEditEvent e) {
-                openDatabase(leveldbStore.getSelectedFile());
-            }
-        });
+        findField.getDocument().addUndoableEditListener(e -> openDatabase(leveldbStore.getSelectedFile()));
 
         hexKey.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -156,12 +149,7 @@ public class Viewer {
                 update(hexKey);
             }
         });
-        hexKey.getDocument().addUndoableEditListener(new UndoableEditListener() {
-            @Override
-            public void undoableEditHappened(UndoableEditEvent e) {
-                update(hexKey);
-            }
-        });
+        hexKey.getDocument().addUndoableEditListener(e -> update(hexKey));
 
         stringKey.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -179,12 +167,7 @@ public class Viewer {
                 update(stringKey);
             }
         });
-        stringKey.getDocument().addUndoableEditListener(new UndoableEditListener() {
-            @Override
-            public void undoableEditHappened(UndoableEditEvent e) {
-                update(stringKey);
-            }
-        });
+        stringKey.getDocument().addUndoableEditListener(e -> update(stringKey));
 
         hexValue.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -202,97 +185,81 @@ public class Viewer {
                 update(hexValue);
             }
         });
-        hexValue.getDocument().addUndoableEditListener(new UndoableEditListener() {
-            @Override
-            public void undoableEditHappened(UndoableEditEvent e) {
-                update(hexValue);
-            }
-        });
+        hexValue.getDocument().addUndoableEditListener(e -> update(hexValue));
 
-        stringValue.getDocument().addDocumentListener(new DocumentListener() {
+        nbtValue.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                update(stringValue);
+                update(nbtValue);
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                update(stringValue);
+                update(nbtValue);
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                update(stringValue);
+                update(nbtValue);
             }
         });
-        stringValue.getDocument().addUndoableEditListener(new UndoableEditListener() {
-            @Override
-            public void undoableEditHappened(UndoableEditEvent e) {
-                update(stringValue);
-            }
-        });
+        nbtValue.getDocument().addUndoableEditListener(e -> update(nbtValue));
 
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                save();
-                openDatabase(leveldbStore.getSelectedFile());
-            }
+        saveMenuItem.addActionListener(e -> {
+            save();
+            openDatabase(leveldbStore.getSelectedFile());
         });
 
         dataList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        dataList.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                DBItem item = dataList.getSelectedValue();
-                if (item != null) {
-                    hexValue.setText(cutToLine(LevelDBViewer.toHexString(item.value), 64));
-                    stringValue.setText(cutToLine(new String(item.value), 64));
-                    hexKey.setText(cutToLine(LevelDBViewer.toHexString(item.key), 64));
-                    stringKey.setText(cutToLine(new String(item.key), 64));
-
-                    lengthLabel.setText(String.valueOf(item.value.length + item.key.length));
-                    keyLength.setText(String.valueOf(item.key.length));
-                    valueLength.setText(String.valueOf(item.value.length));
+        dataList.addListSelectionListener(e -> {
+            DBItem item = dataList.getSelectedValue();
+            if (item != null) {
+                try (ByteArrayInputStream inputStream = new ByteArrayInputStream(item.value);
+                     NBTInputStream stream = NbtUtils.createReaderLE(inputStream)) {
+                    if (item.dbKey == LevelDBKey.SUBCHUNK_PREFIX) {
+                        throw new UnsupportedOperationException();
+                    }
+                    StringJoiner joiner = new StringJoiner("\n--------------------------------------------\n");
+                    while (inputStream.available() > 0) {
+                        joiner.add(stream.readTag().toString());
+                    }
+                    nbtValue.setText(joiner.toString());
+                    nbtValue.setVisible(true);
+                } catch (Exception ex) {
+                    nbtValue.setVisible(false);
+                    //nbtValue.setText(cutToLine(new String(item.value), 64));
                 }
+                hexValue.setText(ByteBufUtil.prettyHexDump(Unpooled.wrappedBuffer(item.value)));
+                hexKey.setText(cutToLine(LevelDBViewer.toHexString(item.key), 64));
+                stringKey.setText(cutToLine(new String(item.key), 64));
+
+                lengthLabel.setText(String.valueOf(item.value.length + item.key.length));
+                keyLength.setText(String.valueOf(item.key.length));
+                valueLength.setText(String.valueOf(item.value.length));
             }
         });
 
-        signedBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                LevelDBViewer.DEFAULT_SINGED = signedBox.isSelected();
-                int i = dataList.getSelectedIndex();
-                dataList.clearSelection();
-                dataList.updateUI();
-                dataList.setSelectedIndex(i);
-                update(hexKey);
-                update(hexValue);
-            }
+        signedBox.addActionListener(e -> {
+            LevelDBViewer.DEFAULT_SINGED = signedBox.isSelected();
+            int i = dataList.getSelectedIndex();
+            dataList.clearSelection();
+            dataList.updateUI();
+            dataList.setSelectedIndex(i);
+            update(hexKey);
+            update(hexValue);
         });
 
         for (PutType t : PutType.values()) {
             putType.addItem(t);
         }
         putType.setSelectedItem(PutType.STRING);
-        putType.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                openDatabase(leveldbStore.getSelectedFile());
-            }
-        });
-        putType.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openDatabase(leveldbStore.getSelectedFile());
-            }
-        });
+        putType.addItemListener(e -> openDatabase(leveldbStore.getSelectedFile()));
+        putType.addActionListener(e -> openDatabase(leveldbStore.getSelectedFile()));
 
         frame.setLocationByPlatform(true);
         frame.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         frame.setContentPane(pane);
-        frame.setTitle("LevelDB Viewer By Marcus (https://github.com/SuperMarcus)");
-        frame.getRootPane().setDefaultButton(openButton);
+        frame.setTitle("LevelDB Viewer");
         frame.pack();
         frame.setVisible(true);
     }
@@ -306,26 +273,18 @@ public class Viewer {
                     if (area.getText().isEmpty()) {
                         return;
                     }
-                    item.key = new BigInteger(area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n"), 16).toByteArray();
                     stringKey.setText(cutToLine(new String(item.key), 64));
                     dataList.updateUI();
                 } else if (area == stringKey) {
                     if (area.getText().isEmpty()) {
                         return;
                     }
-                    item.key = area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n").getBytes();
                     hexKey.setText(cutToLine(LevelDBViewer.toHexString(item.key), 64));
                     dataList.updateUI();
-                } else if (area == hexValue) {
-                    item.value = new BigInteger(area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n"), 16).toByteArray();
-                    stringValue.setText(cutToLine(new String(item.value), 64));
-                } else if (area == stringValue) {
-                    item.value = area.getText().replaceAll("\n", "").replaceAll("%\\{EOL}", "\n").getBytes();
-                    hexValue.setText(cutToLine(LevelDBViewer.toHexString(item.value), 64));
                 }
                 notice.setVisible(false);
                 notice.setText("");
-                saveButton.setEnabled(true);
+                saveMenuItem.setEnabled(true);
             } catch (Exception e) {
                 notice.setVisible(true);
                 notice.setText("Invalid number!");
@@ -377,7 +336,7 @@ public class Viewer {
                         e.printStackTrace();
                     }
                 }
-                saveButton.setEnabled(false);
+                saveMenuItem.setEnabled(false);
             }
         }
         if (isNoticed) {
@@ -403,19 +362,22 @@ public class Viewer {
                 String reg = findField.getText().trim();
 
                 for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
+                    DBItem item = new DBItem(iterator.peekNext().getKey(), iterator.peekNext().getValue());
                     if (reg.isEmpty() ||
 //                            new BigInteger(iterator.peekNext().getKey()).toString(16).contains(reg) ||
 //                            LevelDBViewer.toHexString(iterator.peekNext().getKey()).contains(reg) ||
 //                            new BigInteger(iterator.peekNext().getValue()).toString(16).contains(reg) ||
 //                            LevelDBViewer.toHexString(iterator.peekNext().getValue()).contains(reg) ||
-                            new String(iterator.peekNext().getKey()).contains(reg) //||
+                            item.getFormattedKey().contains(reg) //||
 //                            new String(iterator.peekNext().getValue()).contains(reg)
                     ) {
-                        data.add(new DBItem(iterator.peekNext().getKey(), iterator.peekNext().getValue()));
+                        data.add(item);
                     }
                 }
 
                 iterator.close();
+
+               // data.sort(null);
 
                 frame.getRootPane().setDefaultButton(putButton);
 
@@ -432,7 +394,7 @@ public class Viewer {
                 //saveButton.setEnabled(true);
 
                 hexValue.setText("");
-                stringValue.setText("");
+                nbtValue.setText("");
                 hexKey.setText("");
                 stringKey.setText("");
 
@@ -521,44 +483,71 @@ public class Viewer {
         return builder.toString();
     }
 
-    public class DBItem {
+    public static class DBItem implements Comparable<DBItem> {
         private byte[] key;
-
+        private LevelDBKey dbKey;
         private byte[] value;
 
         public DBItem(byte[] key, byte[] value) {
             this.key = key;
+            this.dbKey = LevelDBKey.fromBytes(key);
             this.value = value;
         }
 
+        public String getFormattedKey() {
+            return dbKey != null ? dbKey.toString(key) : new String(key, StandardCharsets.UTF_8);
+        }
+
+        @Override
         public String toString() {
-            return ((PutType) putType.getSelectedItem()).toString(key);
-            //return s.length() > 8 ? s.substring(0, 8) + "..." : s;
+            return getFormattedKey();
+        }
+
+        @Override
+        public int compareTo(DBItem that) {
+            int compare = Objects.compare(this.dbKey, that.dbKey, Utils.nullComparator());
+            if (compare == 0) {
+                if (dbKey != null) {
+                    compare = Long.compare(this.dbKey.getChunkXZ(key), that.dbKey.getChunkXZ(key));
+                    if (compare == 0) {
+                        return this.dbKey.compareTo(that.dbKey);
+                    }
+                } else {
+                    String thisKey = new String(this.key, StandardCharsets.UTF_8);
+                    String thatKey = new String(that.key, StandardCharsets.UTF_8);
+                    return thisKey.compareTo(thatKey);
+                }
+            }
+            return compare;
         }
     }
 
     public enum PutType {
-        STRING,
-        HEX;
-
-        public byte[] getBytes(String value) {
-            switch (this) {
-                case STRING:
-                    return bytes(value);
-                case HEX:
-                    return new BigInteger(value, 16).toByteArray();
+        STRING{
+            @Override
+            public byte[] getBytes(String value) {
+                return bytes(value);
             }
-            return new byte[0];
-        }
 
-        public String toString(byte[] bytes) {
-            switch (this) {
-                case STRING:
-                    return new String(bytes, StandardCharsets.US_ASCII);
-                case HEX:
-                    return LevelDBViewer.toHexString(bytes);
+            @Override
+            public String toString(byte[] bytes) {
+                return new String(bytes, StandardCharsets.US_ASCII);
             }
-            return "";
-        }
+        },
+        HEX{
+            @Override
+            public byte[] getBytes(String value) {
+                return new BigInteger(value, 16).toByteArray();
+            }
+
+            @Override
+            public String toString(byte[] bytes) {
+                return LevelDBViewer.toHexString(bytes);
+            }
+        };
+
+        public abstract byte[] getBytes(String value);
+
+        public abstract String toString(byte[] bytes);
     }
 }
