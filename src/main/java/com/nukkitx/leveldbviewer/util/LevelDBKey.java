@@ -4,20 +4,32 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 public enum LevelDBKey {
-    DATA_2D('-'),
-    DATA_2D_LEGACY('.'),
-    LEGACY_TERRAIN('0'),
+    HEIGHTMAP_AND_3D_BIOMES('+'),
+    NEW_VERSION(','), // since 1.16.100?
+    HEIGHTMAP_AND_2D_BIOMES('-'), // obsolete since 1.18
+    HEIGHTMAP_AND_2D_BIOME_COLORS('.'), // obsolete since 1.0
+    LEGACY_TERRAIN('0'), // obsolete since 1.0
     BLOCK_ENTITIES('1'),
     ENTITIES('2'),
-    PENDING_TICKS('3'),
-    BLOCK_EXTRA_DATA('4'),
-    BIOME_STATE('5'),
-    STATE_FINALIZATION('6'),
+    PENDING_SCHEDULED_TICKS('3'),
+    LEGACY_BLOCK_EXTRA_DATA('4'), //obsolete since 1.2.13
+    BIOME_STATES('5'), //TODO: is this still applicable to 1.18.0?
+    FINALIZATION('6'),
+    CONVERTER_TAG('7'), // ???
     BORDER_BLOCKS('8'),
     HARDCODED_SPAWNERS('9'),
-    FLAGS('f'),
-    VERSION('v'),
-    SUBCHUNK_PREFIX('/');
+    PENDING_RANDOM_TICKS(':'),
+    XXHASH_CHECKSUMS(';'), // obsolete since 1.18
+    GENERATION_SEED('<'),
+    GENERATED_BEFORE_CNC_BLENDING('='),
+    OLD_VERSION('v'),
+    META_DATA_HASH('?'),
+    UNKNOWN64('@'),
+    UNKNOWN65('A'),
+    @Deprecated
+    NUKKIT_DATA('f'), //TODO
+    SUBCHUNK_PREFIX('/'),
+    ;
 
     private static final LevelDBKey[] VALUES;
 
@@ -33,18 +45,47 @@ public enum LevelDBKey {
     }
 
     public static LevelDBKey fromBytes(byte[] key) {
+        if (key.length == 11) {
+            if (key[9] == SUBCHUNK_PREFIX.encoded) {
+                return SUBCHUNK_PREFIX;
+            }
+            return null;
+        }
+        if (key.length == 10) {
+            if (key[8] == SUBCHUNK_PREFIX.encoded) {
+                return SUBCHUNK_PREFIX;
+            }
+            for (LevelDBKey dbKey : VALUES) {
+                if (key[9] == dbKey.encoded) {
+                    return dbKey;
+                }
+            }
+            return null;
+        }
         if (key.length == 9) {
             for (LevelDBKey dbKey : VALUES) {
                 if (key[8] == dbKey.encoded) {
                     return dbKey;
                 }
             }
-        } else if (key.length == 10) {
-            if (key[8] == SUBCHUNK_PREFIX.encoded) {
-                return SUBCHUNK_PREFIX;
-            }
         }
         return null;
+    }
+
+    public static byte getDimension(byte[] key) {
+        if (key.length == 11) {
+            if (key[9] == SUBCHUNK_PREFIX.encoded) {
+                return 1;
+            }
+            return -1;
+        }
+        if (key.length == 10) {
+            if (key[8] == SUBCHUNK_PREFIX.encoded) {
+                return 0;
+            }
+            return 1;
+        }
+        return 0;
     }
 
     public long getChunkXZ(byte[] key) {
