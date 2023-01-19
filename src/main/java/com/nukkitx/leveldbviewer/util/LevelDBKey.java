@@ -12,7 +12,7 @@ public enum LevelDBKey {
     BLOCK_ENTITIES('1'),
     ENTITIES('2'),
     PENDING_SCHEDULED_TICKS('3'),
-    LEGACY_BLOCK_EXTRA_DATA('4'), //obsolete since 1.2.13
+    LEGACY_BLOCK_EXTRA_DATA('4'), // obsolete since 1.2.13
     BIOME_STATES('5'), //TODO: is this still applicable to 1.18.0?
     FINALIZATION('6'),
     CONVERTER_TAG('7'), // ???
@@ -22,10 +22,11 @@ public enum LevelDBKey {
     XXHASH_CHECKSUMS(';'), // obsolete since 1.18
     GENERATION_SEED('<'),
     GENERATED_BEFORE_CNC_BLENDING('='),
+    BLENDING_BIOME_HEIGHT('>'),
     OLD_VERSION('v'),
     META_DATA_HASH('?'),
-    UNKNOWN64('@'),
-    UNKNOWN65('A'),
+    BLENDING_DATA('@'),
+    ENTITY_DIGEST_VERSION('A'), // since 1.18.30
     @Deprecated
     NUKKIT_DATA('f'), //TODO
     SUBCHUNK_PREFIX('/'),
