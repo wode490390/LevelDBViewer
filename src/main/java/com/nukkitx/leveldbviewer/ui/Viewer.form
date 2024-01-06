@@ -303,6 +303,19 @@
                 </properties>
                 <border type="none"/>
                 <children>
+                  <scrollpane id="e0f6f">
+                    <constraints>
+                      <tabbedpane title="Key"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="e6e1" class="javax.swing.JTextArea" binding="hexKeyValue">
+                        <constraints/>
+                        <properties/>
+                      </component>
+                    </children>
+                  </scrollpane>
                   <scrollpane id="3616b">
                     <constraints>
                       <tabbedpane title="Hex"/>
@@ -316,6 +329,19 @@
                       </component>
                     </children>
                   </scrollpane>
+                  <scrollpane id="6044d">
+                    <constraints>
+                      <tabbedpane title="Base64"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="9cf8b" class="javax.swing.JTextArea" binding="base64Value">
+                        <constraints/>
+                        <properties/>
+                      </component>
+                    </children>
+                  </scrollpane>
                   <scrollpane id="66a55">
                     <constraints>
                       <tabbedpane title="NBT"/>
@@ -324,6 +350,19 @@
                     <border type="none"/>
                     <children>
                       <component id="c21fe" class="javax.swing.JTextArea" binding="nbtValue">
+                        <constraints/>
+                        <properties/>
+                      </component>
+                    </children>
+                  </scrollpane>
+                  <scrollpane id="83424">
+                    <constraints>
+                      <tabbedpane title="Complex"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="a6ef7" class="javax.swing.JTextArea" binding="complexValue">
                         <constraints/>
                         <properties/>
                       </component>

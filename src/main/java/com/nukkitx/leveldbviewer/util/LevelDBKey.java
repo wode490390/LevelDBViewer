@@ -1,7 +1,6 @@
 package com.nukkitx.leveldbviewer.util;
 
 import java.util.Arrays;
-import java.util.Comparator;
 
 public enum LevelDBKey {
     HEIGHTMAP_AND_3D_BIOMES('+'),
@@ -46,20 +45,23 @@ public enum LevelDBKey {
     }
 
     public static LevelDBKey fromBytes(byte[] key) {
-        if (key.length == 11) {
-            if (key[9] == SUBCHUNK_PREFIX.encoded) {
+        if (key.length == 14) {
+            if (key[12] == SUBCHUNK_PREFIX.encoded) {
                 return SUBCHUNK_PREFIX;
+            }
+            return null;
+        }
+        if (key.length == 13) {
+            for (LevelDBKey dbKey : VALUES) {
+                if (key[12] == dbKey.encoded) {
+                    return dbKey;
+                }
             }
             return null;
         }
         if (key.length == 10) {
             if (key[8] == SUBCHUNK_PREFIX.encoded) {
                 return SUBCHUNK_PREFIX;
-            }
-            for (LevelDBKey dbKey : VALUES) {
-                if (key[9] == dbKey.encoded) {
-                    return dbKey;
-                }
             }
             return null;
         }
@@ -73,18 +75,9 @@ public enum LevelDBKey {
         return null;
     }
 
-    public static byte getDimension(byte[] key) {
-        if (key.length == 11) {
-            if (key[9] == SUBCHUNK_PREFIX.encoded) {
-                return 1;
-            }
-            return -1;
-        }
-        if (key.length == 10) {
-            if (key[8] == SUBCHUNK_PREFIX.encoded) {
-                return 0;
-            }
-            return 1;
+    public static int getDimension(byte[] key) {
+        if (key.length == 13 || key.length == 14) {
+            return key[8] | (key[9] << 8) | (key[10] << 16) | (key[11] << 24);
         }
         return 0;
     }
@@ -102,13 +95,16 @@ public enum LevelDBKey {
     }
 
     public int getSubChunkY(byte[] key) {
+        if (key.length == 14) {
+            return key[13];
+        }
         return key[9];
     }
 
     public String toString(byte[] key) {
         String toString = "(" + getChunkX(key) + ", " + getChunkZ(key);
         if (this == LevelDBKey.SUBCHUNK_PREFIX) {
-            toString += ", " + getSubChunkY(key);
+            toString += " | " + getSubChunkY(key);
         }
         return toString + "): " + name();
     }

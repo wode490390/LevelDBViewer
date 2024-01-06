@@ -8,7 +8,7 @@ import java.math.BigInteger;
 public class LevelDBViewer {
     public static boolean DEFAULT_SINGED = false;
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         SwingUtilities.invokeLater(Viewer::new);
     }
